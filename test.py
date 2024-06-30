@@ -1,18 +1,7 @@
-from seleniumbase import Driver
+from seleniumbase import SB
+import time
 
-# Initialize Driver with Ultrafast Grid mode
-driver = Driver(uc=True)
-
-# URL to open
-url = "https://www.browserscan.net/"
-
-# Open URL with reconnect attempts
-driver.uc_open_with_reconnect(url, 3)
-
-# Take a screenshot
-screenshot_path = "screenshot.png"
-driver.save_screenshot(screenshot_path)
-print(f"Screenshot saved to {screenshot_path}")
-
-# Quit the driver
-driver.quit()
+with SB(uc=True, proxy="serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-7Xx9B3Pb") as sb:
+    url = "https://www.browserscan.net/"
+    sb.driver.uc_open_with_reconnect(url, 4)
+    time.sleep(10)

@@ -15,10 +15,10 @@ class Browser:
 # Example usage
 if __name__ == "__main__":
     # Create an instance of Browser
-    browser = Browser(proxy_str="http://localhost:8080")
+    browser = Browser()
     
     # Define the URL to open
-    url = "https://www.browserscan.net/bot-detection"
+    url = "https://www.browserscan.net"
     
     # Open the URL with reconnect attempts
     page_source = browser.open_url(url)
