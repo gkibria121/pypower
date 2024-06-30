@@ -1,4 +1,0 @@
-selenium
-requests
-fake_useragent
-random_user_agent

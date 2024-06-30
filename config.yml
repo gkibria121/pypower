@@ -1,0 +1,10 @@
+listeners:
+  - port: 8080
+
+managers:
+  - static:
+      path: .  # Replace with the path to the directory containing config.yml
+
+plugins:
+  - name: response_headers_plugin
+    path: /path/to/response_headers_plugin.py  # Replace with the actual path to your plugin script

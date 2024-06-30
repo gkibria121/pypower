@@ -1,31 +1,31 @@
 from seleniumbase import Driver
-from Framework.Container import Container 
-from selenium_stealth import stealth
+import time
+
 class Browser:
-    def __init__(self, user_agent=None, proxy_str=None, arguments=[]):
- 
-        self.container= Container()
-        self.driver =   self.create_driver()
- 
+    def __init__(self, uc=True,proxy_str=None):
+        self.driver = Driver(uc=uc,proxy=proxy_str)
 
-
-    def create_driver(self):
-        driver = Driver(uc=True,headless=False)
-        
+    def open_url(self, url, reconnect_attempts=3):
+        self.driver.uc_open_with_reconnect(url, reconnect_attempts)
          
-        return driver
 
-    def open_url(self, url):
-        self.driver.uc_open_with_reconnect(url)
-        return self.driver.page_source
+    def quit(self):
+        self.driver.quit()
 
- 
-
-    def process_driver(self,driver):
-
-        return self.container.get_driver_processor().run(driver)
-     
-
-
-
- 
+# Example usage
+if __name__ == "__main__":
+    # Create an instance of Browser
+    browser = Browser(proxy_str="http://localhost:8080")
+    
+    # Define the URL to open
+    url = "https://www.browserscan.net/bot-detection"
+    
+    # Open the URL with reconnect attempts
+    page_source = browser.open_url(url)
+    time.sleep(20)
+    
+    # Do something with the page source, e.g., print it
+    print(page_source)
+    
+    # Quit the browser driver
+    browser.quit()
