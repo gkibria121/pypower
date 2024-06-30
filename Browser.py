@@ -22,7 +22,7 @@ class Browser:
     def create_driver(self, options):
         capabilities = DesiredCapabilities.CHROME
         capabilities['goog:loggingPrefs'] = {'performance': 'ALL'}
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=options,keep_alive=True)
+        driver = webdriver.Chrome(service=Service(executable_path="Drivers/uc_driver.exe"),options=options,keep_alive=True)
          
         return driver
 
