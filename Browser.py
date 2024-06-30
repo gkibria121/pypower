@@ -48,7 +48,7 @@ class Browser:
             time.sleep(random.uniform(0.5, 1.5))
 
             # Navigate to common URL
-            common_url = "https://www.browserscan.net/"
+            common_url = "https://start.adspower.net/"
             self.driver.get(common_url)
             WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
             # Open a new tab
@@ -104,5 +104,8 @@ class Browser:
 
     def close(self):
         self.driver.close()
+
+    def quit(self):
+        self.driver.quit()
 
     

@@ -6,8 +6,8 @@ def browser_task(proxy_str, ad_link, password):
     browser.open_ad_link(ad_link)
     browser.enter_password_and_login(password)
     # Add any additional actions here
-    time.sleep(60)  # Simulate some work
-    browser.close()  # Assuming there's a method to close the browser
+    time.sleep(180)  # Simulate some work
+    browser.quit() # Assuming there's a method to close the browser
 
 # List of proxy strings, ad links, and passwords
 proxy_list = [
