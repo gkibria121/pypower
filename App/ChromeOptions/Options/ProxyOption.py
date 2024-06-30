@@ -12,7 +12,7 @@ class ProxyOption:
             return self.successor.run(options,user_agent , proxy_str, arguments)
             
 
-        proxy, proxy_auth = self.get_proxy(proxy_str)
+        proxy_auth, proxy, proxy_auth = self.get_proxy(proxy_str)
         proxy_url = f"{proxy['host']}:{proxy['port']}"
         options.add_argument(f'--proxy-server={proxy_url}')
         if  not proxy_auth:
