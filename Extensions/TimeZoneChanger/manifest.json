@@ -1,19 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Time Zone Updater",
+  "name": "Timezone Updater",
   "version": "1.0",
-  "description": "Updates time zone according to IP for every tab.",
+  "description": "Updates timezone when a new tab is created or activated.",
   "permissions": [
     "tabs",
-    "background",
-    "activeTab",
-    "geolocation",
-    "storage"
+    "storage",
+    "background"
   ],
   "background": {
     "service_worker": "background.js"
   },
-  "action": {
-    "default_popup": "popup.html"
-  }
+  "host_permissions": [
+    "https://ipinfo.io/*"
+  ]
 }
