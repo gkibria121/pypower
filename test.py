@@ -1,10 +1,10 @@
 import asyncio
 import nodriver as uc
 import time
-
+ 
 PROXY = "serv.dtt360.com:8000"
 USERNAME = "Skhan"
-PASSWORD = "qGsg86afVQOnK-country-US-session-7Xx9B3Pb"
+PASSWORD = "qGsg86afVQOnK"
 
 class Scraper:
     main_tab: uc.Tab
@@ -17,45 +17,12 @@ class Scraper:
             browser_args=[
                 f"--proxy-server={PROXY}",
                 "--disable-webrtc",
-                "--webrtc.ip_handling_policy=disable_non_proxied_udp",
-                "--webrtc.multiple_routes_enabled=false",
-                "--webrtc.nonproxied_udp_enabled=false",
-                # Additional flags to disable proxy detection
-                "--disable-extensions",
-                "--disable-gpu",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-accelerated-2d-canvas",
-                "--no-first-run",
-                "--no-zygote",
-                "--disable-remote-fonts",
-                "--disable-client-side-phishing-detection",
-                "--disable-ipc-flooding-protection",
-                "--disable-popup-blocking",
-                "--disable-prompt-on-repost",
-                "--ignore-certificate-errors",
-                "--no-default-browser-check",
-                "--disable-infobars",
-                "--disable-breakpad",
-                "--disable-cast",
-                "--disable-cast-streaming-hw-encoding",
-                "--disable-cloud-import",
-                "--disable-default-apps",
-                "--disable-extensions-file-access-check",
-                "--disable-notifications",
-                "--disable-password-generation",
-                "--disable-print-preview",
-                "--disable-speech-api",
-                "--disable-voice-input",
-                "--disable-wake-on-wifi",
-                "--hide-scrollbars",
-                "--metrics-recording-only",
-                "--mute-audio",
-                "--no-pings",
-                "--password-store=basic",
-                "--use-mock-keychain",
-                "--disable-blink-features=AutomationControlled",
+                # "--disable-blink-features=AutomationControlled",
+                "--disable-rtc-smoothness-algorithm",
+                "--disable-rtc-probes",
+                "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+                "--webrtc-multiple-routes-enabled=false",
+                "--webrtc-nonproxied-udp-enabled=false",
             ],
         )
         self.main_tab = await browser.get("draft:,")
@@ -63,14 +30,20 @@ class Scraper:
         self.main_tab.add_handler(
             uc.cdp.fetch.AuthRequired, self.auth_challenge_handler
         )
+       
+         
+         
         await self.main_tab.send(uc.cdp.fetch.enable(handle_auth_requests=True))
         
-        # Additional steps to evade detection
+        # Additional steps to evade detection and disable WebRTC
         await self.set_webdriver(self.main_tab)
-        
-        page = await browser.get("https://www.browserscan.net")
-        await asyncio.sleep(6000)
+        await self.disable_webrtc(self.main_tab)
 
+        
+        page =await  browser.get("https://www.browserscan.net")
+        await self.updateTimeZone(self.main_tab)
+
+        await asyncio.sleep(100)
     async def auth_challenge_handler(self, event: uc.cdp.fetch.AuthRequired):
         asyncio.create_task(
             self.main_tab.send(
@@ -102,6 +75,46 @@ class Scraper:
                 """
             )
         )
+        
+
+    async def disable_webrtc(self, tab):
+        await tab.send(
+            uc.cdp.page.add_script_to_evaluate_on_new_document(
+                source="""
+                function disableWebRTC() {
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        navigator.mediaDevices.getUserMedia = () => new Promise((resolve, reject) => {
+                            reject(new Error("getUserMedia is disabled"));
+                        });
+                    }
+                    if (navigator.getUserMedia) {
+                        navigator.getUserMedia = () => new Promise((resolve, reject) => {
+                            reject(new Error("getUserMedia is disabled"));
+                        });
+                    }
+                    if (window.RTCPeerConnection) {
+                        window.RTCPeerConnection = () => {
+                            throw new Error("RTCPeerConnection is disabled");
+                        };
+                    }
+                    if (navigator.webkitGetUserMedia) {
+                        navigator.webkitGetUserMedia = () => new Promise((resolve, reject) => {
+                            reject(new Error("webkitGetUserMedia is disabled"));
+                        });
+                    }
+                }
+                disableWebRTC();
+            };
+                 
+                """
+            )
+        )
+    
+    async def updateTimeZone(self, tab):
+        await tab.send(uc.cdp.emulation.set_timezone_override({'timezoneId': 'America/New_York'}))
+        
+        
+        
 
 if __name__ == "__main__":
     Scraper()
