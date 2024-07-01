@@ -20,20 +20,22 @@ class Browser:
     def setup_driver(self):
         proxy_host = self.proxy
         args = """--lang=en-US,
-            --disable-web-security,
             --disable-gpu,
-            --no-sandbox,
             --disable-dev-shm-usage,
-            --disable-features=NetworkService,
+            --enable-dns-over-https --dns-over-https-servers="https://dns.google/dns-query",
+            --dns-prefetch-disable,
             --disable-features=VizDisplayCompositor,
-            --disable-software-rasterize"""
+            --disable-webrtc"""
+        # --disable-web-security,  --no-sandbox,   --disable-features=NetworkService, --disable-software-rasterize
         random_user_agent = self.get_random_user_agent()
         
         self.driver = Driver(
             uc=True, headless=False, uc_subprocess=True, uc_cdp_events=True,
             uc_cdp=True, log_cdp=True, log_cdp_events=True, undetectable=True,
             chromium_arg=args, swiftshader=True, agent=random_user_agent, proxy=proxy_host,
-            extension_dir="Extensions/TimeZoneChanger"
+            extension_dir="Extensions/TimeZoneChanger",
+            # server="http://127.0.0.1",
+            # port="4444"
         )
         stealth(
             self.driver,
@@ -44,25 +46,15 @@ class Browser:
             renderer="Intel Iris OpenGL Engine",
             fix_hairline=True
         )
-        self.update_time_zone()
+ 
         # self.driver.set_window_rect(randint(4, 720), randint(8, 410), 700, 900)
-    def update_time_zone(self):
-        self.driver.get("https://ipinfo.io/json")
-        page_source = self.driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
-        pre_tag =soup.find("pre")
-        ip_info = json.loads(pre_tag.get_text())
-        print(ip_info)
-        self.time_zone = ip_info['timezone']  # Example: Eastern Time (US & Canada)
-        
-
+ 
     def open_browserscan(self):
         try:
             self.setup_driver()
             apple_registration_url = "https://www.browserscan.net"
             self.set_timezone()
             self.driver.uc_open_with_reconnect(apple_registration_url, reconnect_time=10)
-            self.set_timezone()
             time.sleep(60)
 
         except Exception as e:
@@ -76,6 +68,4 @@ class Browser:
         tz_params = {'timezoneId': self.time_zone}
         self.driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
 
-if __name__ == '__main__':
-    browser = Browser('Skhan:qGsg86afVQOnK@serv.dtt360.com:8000')
-    browser.open_browserscan()
+ 
