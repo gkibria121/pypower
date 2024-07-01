@@ -9,7 +9,7 @@ class Browser:
     def __init__(self,proxy):
         self.driver = None
         self.proxy = proxy
-
+        self.time_zone = 'America/New_York'
     def get_random_user_agent(self):
         ua = UserAgent()
         while True:
@@ -32,7 +32,8 @@ class Browser:
         self.driver = Driver(
             uc=True, headless=False, uc_subprocess=True, uc_cdp_events=True,
             uc_cdp=True, log_cdp=True, log_cdp_events=True, undetectable=True,
-            chromium_arg=args, swiftshader=True, agent=random_user_agent, proxy=proxy_host
+            chromium_arg=args, swiftshader=True, agent=random_user_agent, proxy=proxy_host,
+            extension_dir="Extensions/TimeZoneChanger"
         )
         stealth(
             self.driver,
@@ -51,21 +52,17 @@ class Browser:
         soup = BeautifulSoup(page_source, 'html.parser')
         pre_tag =soup.find("pre")
         ip_info = json.loads(pre_tag.get_text())
-         
         print(ip_info)
-        tz_params = {'timezoneId': ip_info['timezone']}
-        time_zone = ip_info['timezone']  # Example: Eastern Time (US & Canada)
-        script = f"Intl.DateTimeFormat().resolvedOptions().timeZone = '{time_zone}';"
-        self.driver.execute_script(script)
+        self.time_zone = ip_info['timezone']  # Example: Eastern Time (US & Canada)
+        
 
     def open_browserscan(self):
         try:
             self.setup_driver()
-            apple_registration_url = "https://www.browserscan.net/"
-            start_time = time.time()
+            apple_registration_url = "https://www.browserscan.net"
+            self.set_timezone()
             self.driver.uc_open_with_reconnect(apple_registration_url, reconnect_time=10)
-            stop_time = time.time()
-            print("SeleniumBase time:", stop_time - start_time)
+            self.set_timezone()
             time.sleep(60)
 
         except Exception as e:
@@ -74,6 +71,10 @@ class Browser:
         finally:
             if self.driver:
                 self.driver.quit()
+
+    def set_timezone(self):
+        tz_params = {'timezoneId': self.time_zone}
+        self.driver.execute_cdp_cmd('Emulation.setTimezoneOverride', tz_params)
 
 if __name__ == '__main__':
     browser = Browser('Skhan:qGsg86afVQOnK@serv.dtt360.com:8000')

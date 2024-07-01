@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Time Zone Updater",
+  "version": "1.0",
+  "description": "Updates time zone according to IP for every tab.",
+  "permissions": [
+    "tabs",
+    "background",
+    "activeTab",
+    "geolocation",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
