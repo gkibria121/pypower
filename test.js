@@ -22,6 +22,6 @@ const { newInjectedContext }  = require('fingerprint-injector');
     );
 
     const page = await context.newPage();
-    await page.goto("https://browserscan.net/bot-detection")
+    await page.goto("https://www.nowsecure.nl")
    // ... your code using `page` here
 })();

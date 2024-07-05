@@ -1,6 +1,7 @@
 const { chromium } = require('playwright-extra'); 
 const axios = require('axios');
 const { newInjectedContext }  = require('fingerprint-injector');
+const {FingerprintGenerator} = require('fingerprint-generator');
 async function getTimezoneFromIP(ip) {
   try {
     const response = await axios.get(`http://ip-api.com/json/${ip}`);
@@ -38,20 +39,37 @@ async function automateTask() {
       password: 'qGsg86afVQOnK-country-US-session-7Xx9B3Pb'
     }
   });
-  
+  let fingerprintGenerator = new FingerprintGenerator({
+    browsers: [
+        {name: "firefox", minVersion: 80},
+        {name: "chrome", minVersion: 87},
+        "safari"
+    ],
+    devices: [
+        "desktop"
+    ],
+    operatingSystems: [
+        "windows"
+    ]
+});
+let { fingerprint, headers } = fingerprintGenerator.getFingerprint({
+  operatingSystems: [
+      "linux"
+  ],
+  locales: ["en-US", "en"]
+});
   const context = await newInjectedContext(
     browser,
     {
         // Constraints for the generated fingerprint (optional)
         fingerprintOptions: {
-            devices: ['desktop'],
-            operatingSystems: ['windows'],
+           ...fingerprint
         },
         // Playwright's newContext() options (optional, random example for illustration)
         newContextOptions: {
           timezoneId: timezone,
           locale: 'en-US',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+           ...headers ,
           viewport: { width: 1360, height: 720 },
           deviceScaleFactor: 1,
           hasTouch: false ,
@@ -69,7 +87,7 @@ async function automateTask() {
  
  
   try {
-    await page.goto('https://www.browserscan.net');
+    await page.goto('https://intoli.com/blog/not-possible-to-block-chrome-headless/chrome-headless-test.html');
     console.log('Navigation to browserscan.net completed');
  
 

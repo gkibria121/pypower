@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "axios": "^1.7.2",
+    "fingerprint-generator": "^2.1.52",
     "fingerprint-injector": "^2.1.52",
     "playwright": "^1.45.1",
     "playwright-extra": "^4.3.6",
