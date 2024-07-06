@@ -1,14 +1,14 @@
-const { chromium } = require('playwright-extra'); 
-const axios = require('axios');
-const { newInjectedContext }  = require('fingerprint-injector');
-const {FingerprintGenerator} = require('fingerprint-generator');
+const { chromium } = require("playwright-extra");
+const axios = require("axios");
+const { newInjectedContext } = require("fingerprint-injector");
+const { FingerprintGenerator } = require("fingerprint-generator");
 async function getTimezoneFromIP(ip) {
   try {
     const response = await axios.get(`http://ip-api.com/json/${ip}`);
     return response.data.timezone;
   } catch (error) {
-    console.error('Error fetching timezone:', error);
-    return 'America/New_York'; // Default timezone if fetch fails
+    console.error("Error fetching timezone:", error);
+    return "America/New_York"; // Default timezone if fetch fails
   }
 }
 
@@ -18,105 +18,87 @@ async function automateTask() {
 
   const timezone = await getTimezoneFromIP(proxyIP);
   console.log(`Using timezone: ${timezone}`);
- 
+
   const browser = await chromium.launch({
     headless: false,
     args: [
-      '--disable-blink-features=AutomationControlled',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process',
-      '--disable-webrtc-encryption',
-      '--disable-webrtc-hw-encoding',
-      '--disable-webrtc-hw-decoding',
-      '--disable-webrtc-multiple-routes',
-      '--disable-webrtc-hw-vp8-encoding',
-      '--disable-webrtc-hw-h264-encoding',
-      '--force-webrtc-ip-handling-policy=disable_non_proxied_udp'
+      "--disable-blink-features=AutomationControlled",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+      "--disable-webrtc-encryption",
+      "--disable-webrtc-hw-encoding",
+      "--disable-webrtc-hw-decoding",
+      "--disable-webrtc-multiple-routes",
+      "--disable-webrtc-hw-vp8-encoding",
+      "--disable-webrtc-hw-h264-encoding",
+      "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
     ],
     proxy: {
-      server: 'http://serv.dtt360.com:8000',
-      username: 'Skhan',
-      password: 'qGsg86afVQOnK-country-US-session-7Xx9B3Pb'
-    }
+      server: "http://serv.dtt360.com:8000",
+      username: "Skhan",
+      password: "qGsg86afVQOnK-country-US-session-7Xx9B3Pb",
+    },
   });
   let fingerprintGenerator = new FingerprintGenerator({
-    browsers: [
-        {name: "firefox", minVersion: 80},
-        {name: "chrome", minVersion: 87},
-        "safari"
-    ],
-    devices: [
-        "desktop"
-    ],
-    operatingSystems: [
-        "windows"
-    ]
-});
-let { fingerprint, headers } = fingerprintGenerator.getFingerprint({
-  operatingSystems: [
-      "linux"
-  ],
-  locales: ["en-US", "en"]
-});
-  const context = await newInjectedContext(
-    browser,
-    {
-        // Constraints for the generated fingerprint (optional)
-        fingerprintOptions: {
-           ...fingerprint
-        },
-        // Playwright's newContext() options (optional, random example for illustration)
-        newContextOptions: {
-          timezoneId: timezone,
-          locale: 'en-US',
-           ...headers ,
-          viewport: { width: 1360, height: 720 },
-          deviceScaleFactor: 1,
-          hasTouch: false ,
-            geolocation: {
-                latitude: 51.50853,
-                longitude: -0.12574,
-            }
-        }
+    browsers: [{ name: "firefox", minVersion: 80 }, { name: "chrome", minVersion: 87 }, "safari"],
+    devices: ["desktop"],
+    operatingSystems: ["windows"],
+  });
+  let { fingerprint, headers } = fingerprintGenerator.getFingerprint({
+    operatingSystems: ["linux"],
+    locales: ["en-US", "en"],
+  });
+  const context = await newInjectedContext(browser, {
+    // Constraints for the generated fingerprint (optional)
+    fingerprintOptions: {
+      ...fingerprint,
     },
-); 
-
-  
+    // Playwright's newContext() options (optional, random example for illustration)
+    newContextOptions: {
+      timezoneId: timezone,
+      locale: "en-US",
+      ...headers,
+      viewport: { width: 1360, height: 720 },
+      deviceScaleFactor: 1,
+      hasTouch: false,
+      geolocation: {
+        latitude: 51.50853,
+        longitude: -0.12574,
+      },
+    },
+  });
 
   const page = await context.newPage();
- 
- 
+
   try {
-    await page.goto('https://intoli.com/blog/not-possible-to-block-chrome-headless/chrome-headless-test.html');
-    console.log('Navigation to browserscan.net completed');
- 
+    await page.goto("https://browserscan.net/bot-detection");
+    console.log("Navigation to browserscan.net completed");
 
     // Wait for a random time between 5 and 10 seconds
     await page.waitForTimeout(5000 + Math.floor(Math.random() * 5000));
-
   } catch (error) {
-    console.error('Error during navigation:', error);
+    console.error("Error during navigation:", error);
   }
 
-  await new Promise(resolve => setTimeout(resolve, 600000));
+  await new Promise((resolve) => setTimeout(resolve, 600000));
   await browser.close();
 }
 
 async function getProxyIP() {
   try {
-    const response = await axios.get('http://api.ipify.org', {
+    const response = await axios.get("http://api.ipify.org", {
       proxy: {
-        host: 'serv.dtt360.com',
+        host: "serv.dtt360.com",
         port: 8000,
         auth: {
-          username: 'Skhan',
-          password: 'qGsg86afVQOnK-country-US-session-7Xx9B3Pb'
-        }
-      }
+          username: "Skhan",
+          password: "qGsg86afVQOnK-country-US-session-7Xx9B3Pb",
+        },
+      },
     });
     return response.data;
   } catch (error) {
-    console.error('Error fetching proxy IP:', error);
+    console.error("Error fetching proxy IP:", error);
     return null;
   }
 }
