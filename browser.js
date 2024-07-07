@@ -48,6 +48,13 @@ export const getBrowser =  async({ proxy=undefined, executablePath = "", timezon
       "--disable-blink-features=AutomationControlled",
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
+      "--disable-webgl",
+      "--use-gl=desktop",
+      "--disable-gpu-sandbox",
+      "--ignore-gpu-blocklist",
+      "--enable-webgl",
+      "--enable-gpu-rasterization"
+      
     ],
     proxy: proxy  ,
     executablePath:"Browsers\\nstchrome-124-202407011800\\nstchrome.exe"
@@ -86,6 +93,6 @@ export const getBrowser =  async({ proxy=undefined, executablePath = "", timezon
 
   return context;
 }
-
+ 
 
  
