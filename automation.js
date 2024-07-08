@@ -1,6 +1,6 @@
 
 import { getBrowser } from "./browser.js";
-import { clickOnAd, clickOnAdLink, unlockAd } from "./page.js";
+import {   clickOnAdLink, getAdLink, unlockAd } from "./page.js";
 async function automateTask() {
 
 
@@ -22,8 +22,8 @@ async function automateTask() {
     const page = await context.newPage();
 
     await unlockAd(page,"https://tinyshorten.com/Tasin-SS","1111")
-   const adpage =  await clickOnAdLink(page, 1)
-    await clickOnAd(adpage)
+   const adpage =  await getAdLink(page, 1)
+    await clickOnAdLink(adpage)
   } catch (error) {
     console.error("Error during navigation:", error);
   }

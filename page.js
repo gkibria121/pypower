@@ -7,7 +7,7 @@ export const unlockAd = async (page, url, password = "1111", inputRef = 'input[n
   await page.waitForTimeout(2000);
 };
 
-export const clickOnAdLink = async (page, link = 1, links = [], ref = 'a[rel="noreferrer noopener"]') => {
+export const getAdLink = async (page, link = 1, links = [], ref = 'a[rel="noreferrer noopener"]') => {
   await page.waitForSelector('body', { state: 'attached' });
   await page.waitForTimeout(2000);
   await page.waitForSelector(ref);
@@ -38,7 +38,7 @@ export const clickOnAdLink = async (page, link = 1, links = [], ref = 'a[rel="no
   return page;
 };
 
-export const clickOnAd = async (page, ref = 'iframe') => {
+export const clickOnAdLink = async (page, ref = 'iframe') => {
   try {
     await page.reload({ waitUntil: 'networkidle0' });
     await page.waitForSelector(ref, { visible: true, timeout: 100000 });
