@@ -134,8 +134,8 @@ export const clickOnSite = async (page) => {
       } catch (error) {
         console.error('Error in clickOnSite iteration:', error.message);
       }
-      await page.waitForTimeout(1000);
-      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(10000);
+      // await page.reload({ waitUntil: 'domcontentloaded' });
     }
  
 };
