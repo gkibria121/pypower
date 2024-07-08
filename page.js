@@ -1,5 +1,3 @@
-import fs from 'fs/promises';
-
 export const unlockAd = async (page, url, password = "1111", inputRef = 'input[name="post_password"]', submitRef = 'input[name="Submit"]') => {
   await page.goto(url);
   await page.fill(inputRef, password);
@@ -50,38 +48,40 @@ export const clickOnAdLink = async (page, ref = 'iframe') => {
 
     const frameHandle = await iframeElement.contentFrame();
     await frameHandle.waitForLoadState('domcontentloaded');
-    let newPage ;
-    const linkClicked = await frameHandle.evaluate((page,newPage,text) => {
+    
+    const newPagePromise = new Promise(resolve => page.context().once('page', resolve));
+
+    const linkClicked = await frameHandle.evaluate(() => {
       const links = Array.from(document.links);
       for (const link of links) {
         if (link.href.includes('1081.us.searchitbetter.com') || 
             link.textContent.includes('1081.us.searchitbetter.com')) {
-              newPage =   link.click();
+          link.click();
           return { href: link.href, text: link.textContent.trim() };
         }
       }
-      return newPage;
+      return null;
     });
 
     if (linkClicked) {
       console.log(`Clicked link: ${linkClicked.text}`);
 
+      const newPage = await newPagePromise;
+      await newPage.waitForLoadState('domcontentloaded');
+
+      console.log('New page loaded');
+      return newPage;
     } else {
       console.log('Link with "1081.us.searchitbetter.com" not found');
+      return page;  
     }
 
-    await page.waitForNavigation({ timeout: 30000 }).catch(() => {
-      console.log('Navigation timeout, but continuing...');
-    });
-
-
   } catch (error) {
-    console.error(`Error in clickOnAd: ${error.message}`);
+    console.error(`Error in clickOnAdLink: ${error.message}`);
+    return page;  
   }
 };
-
  
-
 const clickAndWait = async (page, element, index) => {
   try {
     const newPagePromise = new Promise(resolve => {
@@ -101,3 +101,101 @@ const clickAndWait = async (page, element, index) => {
     console.log('Error during click or navigation:', error.message);
   }
 };
+
+export const clickOnAd = async (page, ref = '.adv-text-top') => {
+  try {
+    console.log("waiting for ", ref);
+    await page.waitForSelector(ref, { visible: true, timeout: 3000 });
+
+    await page.waitForTimeout(10000);
+
+    const button = await page.waitForSelector('.adv-text-exp__title', { visible: true, timeout: 3000 });
+    if (button) {
+      console.log('Button with class adv-text-exp__title clicked');
+      return await clickAndWait(page, button);
+    } else {
+      console.log('Button with class adv-text-exp__title not found');
+    }
+
+    return page;
+  } catch (error) {
+    console.log(error);
+    return page;
+  }
+};
+
+export const clickOnSite = async (page) => {
+  try {
+    const endTime = Date.now() + 70000; // 70 seconds from now
+    while (Date.now() < endTime) {
+      try {
+        await randomScroll(page);
+        await clickRandomLinks(page);
+      } catch (error) {
+        console.log(error);
+      }
+      await page.waitForTimeout(1000); // Wait for 1 second before the next action
+
+      // Reload the page after each iteration
+      await page.reload({ waitUntil: 'domcontentloaded' });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+async function clickRandomLinks(page, maxClicks = 1, delay = 3000) {
+  for (let i = 0; i < maxClicks; i++) {
+    try {
+      const links = await page.$$('a[href]');
+      
+      if (links.length === 0) {
+        console.log('No links found on the page.');
+        break;
+      }
+      
+      const randomIndex = Math.floor(Math.random() * links.length);
+      const randomLink = links[randomIndex];
+      
+      const href = await randomLink.evaluate(el => el.getAttribute('href'));
+      console.log(`Clicking link: ${href}`);
+      
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: delay * 10 }),
+        randomLink.click()
+      ]);
+      
+      console.log('Navigation complete');
+      await page.waitForTimeout(delay);
+
+      await page.goBack({ waitUntil: 'domcontentloaded', timeout: delay * 10 });
+      console.log('Navigated back to previous page');
+      
+      await page.waitForTimeout(delay);
+    } catch (error) {
+      console.error('Error during link click:', error.message);
+    }
+  }
+}
+
+async function randomScroll(page, maxScrolls = 5, maxScrollAmount = 800, minScrollAmount = 100, maxDelay = 2000, minDelay = 500) {
+  for (let i = 0; i < maxScrolls; i++) {
+    try {
+      const scrollAmount = Math.floor(Math.random() * (maxScrollAmount - minScrollAmount + 1)) + minScrollAmount;
+      const scrollDirection = Math.random() < 0.5 ? -1 : 1;
+      
+      await page.evaluate((amount) => {
+        window.scrollBy(0, amount);
+      }, scrollAmount * scrollDirection);
+      
+      console.log(`Scrolled ${scrollDirection > 0 ? 'down' : 'up'} by ${scrollAmount} pixels`);
+      
+      const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+      
+      await page.waitForTimeout(delay);
+      
+    } catch (error) {
+      console.error('Error during scrolling:', error.message);
+    }
+  }
+}
