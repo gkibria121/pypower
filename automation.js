@@ -1,5 +1,6 @@
- 
+
 import { getBrowser } from "./browser.js";
+import { clickOnAd, clickOnAdLink, unlockAd } from "./page.js";
 async function automateTask() {
 
 
@@ -11,15 +12,18 @@ async function automateTask() {
     ipTimeZone : true
   } });
   const page2 = await context.newPage();
-  const page = await context.newPage();
+  const page0 = await context.newPage();
   page2.close()
 
   try {
-    await page.goto("https://browserscan.net");
+    
+    await page0.goto("https://browserscan.net");
     console.log("Navigation to browserscan.net completed");
+    const page = await context.newPage();
 
-    // Wait for a random time between 5 and 10 seconds
-    await page.waitForTimeout(5000 + Math.floor(Math.random() * 5000));
+    await unlockAd(page,"https://tinyshorten.com/Tasin-SS","1111")
+   const adpage =  await clickOnAdLink(page, 1)
+    await clickOnAd(adpage)
   } catch (error) {
     console.error("Error during navigation:", error);
   }
