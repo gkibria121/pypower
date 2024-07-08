@@ -1,45 +1,51 @@
 export const unlockAd = async (page, url, password = "1111", inputRef = 'input[name="post_password"]', submitRef = 'input[name="Submit"]') => {
-  await page.goto(url);
-  await page.fill(inputRef, password);
-  await page.locator(submitRef).click();
-  await page.waitForTimeout(2000);
+  try {
+    await page.goto(url);
+    await page.fill(inputRef, password);
+    await page.locator(submitRef).click();
+    await page.waitForTimeout(2000);
+  } catch (error) {
+    console.error('Error in unlockAd:', error.message);
+  }
 };
 
 export const getAdLink = async (page, link = 1, links = [], ref = 'a[rel="noreferrer noopener"]') => {
-  await page.waitForSelector('body', { state: 'attached' });
-  await page.waitForTimeout(2000);
-  await page.waitForSelector(ref);
 
-  const elements = page.locator(ref);
-  const count = await elements.count();
+    await page.waitForSelector('body', { state: 'attached' });
+    await page.waitForTimeout(2000);
+    await page.waitForSelector(ref);
 
-  if (links.length === 0) {
-    if (count > 0) {
-      const newPage = await clickAndWait(page, elements.first(), 1);
-      console.log('Clicked on the first link');
-      return newPage;
-    } else {
-      console.log('No links found');
+    const elements = page.locator(ref);
+    const count = await elements.count();
+
+    if (links.length === 0) {
+      if (count > 0) {
+        const newPage = await clickAndWait(page, elements.first(), 1);
+        console.log('Clicked on the first link');
+        return newPage;
+      } else {
+        console.log('No links found');
+      }
+      return page;
+    }
+
+    for (let i = 0; i < links.length; i++) {
+      let l = links[i];
+      if (l > 0 && l <= count) {
+        await clickAndWait(page, elements.nth(l - 1), l);
+        console.log(`Clicked on link number ${l}`);
+      } else {
+        console.log(`Invalid link number: ${l}. Total links: ${count}`);
+      }
     }
     return page;
-  }
 
-  for (let i = 0; i < links.length; i++) {
-    let l = links[i];
-    if (l > 0 && l <= count) {
-      await clickAndWait(page, elements.nth(l - 1), l);
-      console.log(`Clicked on link number ${l}`);
-    } else {
-      console.log(`Invalid link number: ${l}. Total links: ${count}`);
-    }
-  }
-  return page;
 };
 
 export const clickOnAdLink = async (page, ref = 'iframe') => {
-  try {
+ 
     await page.reload({ waitUntil: 'networkidle0' });
-    await page.waitForSelector(ref, { visible: true, timeout: 100000 });
+    await page.waitForSelector(ref, { visible: true, timeout: 60000 });
 
     const iframeElement = await page.$(ref);
     if (!iframeElement) {
@@ -75,15 +81,11 @@ export const clickOnAdLink = async (page, ref = 'iframe') => {
       console.log('Link with "1081.us.searchitbetter.com" not found');
       return page;  
     }
-
-  } catch (error) {
-    console.error(`Error in clickOnAdLink: ${error.message}`);
-    return page;  
-  }
-};
  
+};
+
 const clickAndWait = async (page, element, index) => {
-  try {
+ 
     const newPagePromise = new Promise(resolve => {
       page.context().once('page', resolve);
     });
@@ -97,58 +99,51 @@ const clickAndWait = async (page, element, index) => {
 
     console.log('Navigation completed or new tab opened');
     return newPage;
-  } catch (error) {
-    console.log('Error during click or navigation:', error.message);
-  }
+ 
 };
 
 export const clickOnAd = async (page, ref = '.adv-text-top') => {
-  try {
-    console.log("waiting for ", ref);
-    await page.waitForSelector(ref, { visible: true, timeout: 3000 });
+ 
+    console.log("Waiting for", ref);
+    await page.waitForSelector(ref, { visible: true, timeout: 60000 });
+    await page.waitForTimeout(60000);
+    await page.screenshot({ path: "adPage.png" });
 
-    await page.waitForTimeout(10000);
-
-    const button = await page.waitForSelector('.adv-text-exp__title', { visible: true, timeout: 3000 });
+    const button = await page.waitForSelector('.adv-text-exp__title', { visible: true, timeout: 60000 });
     if (button) {
       console.log('Button with class adv-text-exp__title clicked');
-      return await clickAndWait(page, button);
+      await clickAndWait(page, button);
+      
+      await page.waitForSelector(ref, { hidden: true, timeout: 60000 });
+      console.log('Button with class adv-text-exp__title has disappeared');
     } else {
       console.log('Button with class adv-text-exp__title not found');
     }
 
     return page;
-  } catch (error) {
-    console.log(error);
-    return page;
-  }
+ 
 };
 
 export const clickOnSite = async (page) => {
-  try {
-    const endTime = Date.now() + 70000; // 70 seconds from now
+ 
+    const endTime = Date.now() + 70000;
     while (Date.now() < endTime) {
       try {
         await randomScroll(page);
         await clickRandomLinks(page);
       } catch (error) {
-        console.log(error);
+        console.error('Error in clickOnSite iteration:', error.message);
       }
-      await page.waitForTimeout(1000); // Wait for 1 second before the next action
-
-      // Reload the page after each iteration
+      await page.waitForTimeout(1000);
       await page.reload({ waitUntil: 'domcontentloaded' });
     }
-  } catch (error) {
-    console.log(error);
-  }
+ 
 };
 
 async function clickRandomLinks(page, maxClicks = 1, delay = 3000) {
   for (let i = 0; i < maxClicks; i++) {
     try {
       const links = await page.$$('a[href]');
-      
       if (links.length === 0) {
         console.log('No links found on the page.');
         break;
@@ -156,7 +151,6 @@ async function clickRandomLinks(page, maxClicks = 1, delay = 3000) {
       
       const randomIndex = Math.floor(Math.random() * links.length);
       const randomLink = links[randomIndex];
-      
       const href = await randomLink.evaluate(el => el.getAttribute('href'));
       console.log(`Clicking link: ${href}`);
       
@@ -170,7 +164,6 @@ async function clickRandomLinks(page, maxClicks = 1, delay = 3000) {
 
       await page.goBack({ waitUntil: 'domcontentloaded', timeout: delay * 10 });
       console.log('Navigated back to previous page');
-      
       await page.waitForTimeout(delay);
     } catch (error) {
       console.error('Error during link click:', error.message);
@@ -184,16 +177,11 @@ async function randomScroll(page, maxScrolls = 5, maxScrollAmount = 800, minScro
       const scrollAmount = Math.floor(Math.random() * (maxScrollAmount - minScrollAmount + 1)) + minScrollAmount;
       const scrollDirection = Math.random() < 0.5 ? -1 : 1;
       
-      await page.evaluate((amount) => {
-        window.scrollBy(0, amount);
-      }, scrollAmount * scrollDirection);
-      
+      await page.evaluate(amount => window.scrollBy(0, amount), scrollAmount * scrollDirection);
       console.log(`Scrolled ${scrollDirection > 0 ? 'down' : 'up'} by ${scrollAmount} pixels`);
       
       const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-      
       await page.waitForTimeout(delay);
-      
     } catch (error) {
       console.error('Error during scrolling:', error.message);
     }
