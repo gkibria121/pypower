@@ -22,6 +22,7 @@ const  automateTask=  async (proxy={},type="") =>{
     console.log("Navigation to browserscan.net completed");
 
     const page = await context.newPage();
+  
     await unlockAd(page, "https://tinyshorten.com/Tasin-SS", "1111");
     const adLinkPage = await getAdLink(page, 1);
     const adPage = await clickOnAdLink(adLinkPage);

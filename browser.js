@@ -1,5 +1,5 @@
-import { chromium } from "playwright-extra" ;
-import axios from "axios" ;
+import { chromium } from "playwright-extra";
+import axios from "axios";
 import { newInjectedContext } from "fingerprint-injector";
 import { FingerprintGenerator } from "fingerprint-generator";
 
@@ -15,7 +15,7 @@ async function getTimezoneFromIP(ip) {
 
 async function getProxyIP(proxy) {
   try { 
-    const parts =  proxy.server.split(":")
+    const parts = proxy.server.split(":")
     const response = await axios.get("http://api.ipify.org", {
       proxy: {
         host: parts[1].replace("//",""),
@@ -33,15 +33,37 @@ async function getProxyIP(proxy) {
   }
 }
 
-export const getBrowser =  async({ proxy=undefined, executablePath = "", timezone="America/New_York",ipTimeZone = true  } = {}) => {
-    let timezoneId = timezone;
-    if( proxy && ipTimeZone  ){
+export const getBrowser = async ({ proxy = undefined, executablePath = "", timezone = "America/New_York", ipTimeZone = true } = {}) => {
+  let timezoneId = timezone;
+  let context;
+
+  const updateTimezone = async () => {
+    if (proxy && ipTimeZone) {
+      try {
         let proxyIP = await getProxyIP(proxy);
-        // console.log(`Proxy IP: ${proxyIP}`);
-      
-        timezoneId = await getTimezoneFromIP(proxyIP);
-        // console.log(`Using timezone: ${timezone}`);
+        let newTimezoneId = await getTimezoneFromIP(proxyIP);
+        if (newTimezoneId !== timezoneId) {
+          timezoneId = newTimezoneId;
+          await context.setTimezone(timezoneId);
+          console.log(`Updated timezone to: ${timezoneId}`);
+
+          // Reload all pages after updating the timezone
+          const pages = context.pages();
+          for (const page of pages) {
+            await page.reload();
+          }
+        }
+      } catch (error) {
+        console.error("Error updating timezone:", error);
+      }
     }
+  };
+
+  if (proxy && ipTimeZone) {
+    let proxyIP = await getProxyIP(proxy);
+    timezoneId = await getTimezoneFromIP(proxyIP);
+  }
+
   const browser = await chromium.launch({
     headless: false,
     args: [
@@ -54,11 +76,9 @@ export const getBrowser =  async({ proxy=undefined, executablePath = "", timezon
       "--ignore-gpu-blocklist",
       "--enable-webgl",
       "--enable-gpu-rasterization"
-      
     ],
-    proxy: proxy  ,
-    executablePath:"Browsers\\nstchrome-124-202407011800\\nstchrome.exe"
-    
+    proxy: proxy,
+    executablePath: executablePath || "Browsers\\nstchrome-124-202407011800\\nstchrome.exe"
   });
 
   let fingerprintGenerator = new FingerprintGenerator({
@@ -73,13 +93,13 @@ export const getBrowser =  async({ proxy=undefined, executablePath = "", timezon
     locales: ["en-US", "en"],
   });
 
-  const context = await newInjectedContext(browser, {
+  context = await newInjectedContext(browser, {
     fingerprintOptions: {
       ...fingerprint
     },
     newContextOptions: {
-      timezoneId: timezoneId  ,
-      locale:   "en-US",
+      timezoneId: timezoneId,
+      locale: "en-US",
       ...headers,
       viewport: { width: 1360, height: 720 },
       deviceScaleFactor: 1,
@@ -91,8 +111,10 @@ export const getBrowser =  async({ proxy=undefined, executablePath = "", timezon
     },
   });
 
+  // Schedule the timezone update after 60 seconds
+  setTimeout(updateTimezone, 10000);
+
   return context;
 }
- 
 
  
