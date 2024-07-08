@@ -50,17 +50,17 @@ export const clickOnAdLink = async (page, ref = 'iframe') => {
 
     const frameHandle = await iframeElement.contentFrame();
     await frameHandle.waitForLoadState('domcontentloaded');
-
-    const linkClicked = await frameHandle.evaluate(() => {
+    let newPage ;
+    const linkClicked = await frameHandle.evaluate((page,newPage,text) => {
       const links = Array.from(document.links);
       for (const link of links) {
         if (link.href.includes('1081.us.searchitbetter.com') || 
             link.textContent.includes('1081.us.searchitbetter.com')) {
-          link.click();
+              newPage =   link.click();
           return { href: link.href, text: link.textContent.trim() };
         }
       }
-      return null;
+      return newPage;
     });
 
     if (linkClicked) {
@@ -80,19 +80,7 @@ export const clickOnAdLink = async (page, ref = 'iframe') => {
   }
 };
 
-export const clickAndCaptureNewTab = async (page, selector) => {
-  const newPagePromise = new Promise(resolve => {
-    page.context().once('page', resolve);
-  });
-
-  await page.click();
-
-  const newPage = await newPagePromise;
-  await newPage.waitForLoadState('domcontentloaded');
-  await newPage.waitForTimeout(2000);
-
-  return newPage;
-};
+ 
 
 const clickAndWait = async (page, element, index) => {
   try {
