@@ -5,7 +5,7 @@ const TIMEOUT = {
   SHORT: 2000,
   MEDIUM: 5000,
   LONG: 30000,
-  DEFAULT_LOAD_STATE: 60000
+  DEFAULT_LOAD_STATE: 80000
 };
 
 // Utility functions
@@ -173,7 +173,7 @@ export const clickOnAdLink = async (page, type = "expression", ref = 'iframe') =
  
 
 export const clickOnAd = async (page, type = "expression", ref = '.adv-text-top') => {
-  try {
+ 
     console.log("Waiting for", ref);
     await waitForSelector(page, ref);
     await page.waitForTimeout(TIMEOUT.LONG); 
@@ -188,10 +188,7 @@ export const clickOnAd = async (page, type = "expression", ref = '.adv-text-top'
     }
 
     return page;
-  } catch (error) {
-    console.error('Error during ad click:', error);
-    throw error;
-  }
+ 
 };
 
 export const clickOnSite = async (page) => {
