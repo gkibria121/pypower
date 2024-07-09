@@ -48,36 +48,29 @@ export const unlockAd = async (page, url, password = "1111", inputRef = 'input[n
   }
 };
 
-export const getAdLink = async (page, link = 1, links = [], ref = 'a[rel="noreferrer noopener"]') => {
+export const getAdLink = async (page, task = 1, links = [], ref = 'a[rel="noreferrer noopener"]') => {
   console.log('Waiting for page body to load');
-  await waitForSelector(page, 'body', { state: 'attached' });
-  await waitForLoadState(page);
+  await page.waitForSelector('body', { state: 'attached' });
+  await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(TIMEOUT.SHORT);
 
   console.log(`Waiting for selector: ${ref}`);
-  await waitForSelector(page, ref);
-  await waitForLoadState(page);
+  await page.waitForSelector(ref);
+  await page.waitForLoadState('domcontentloaded');
 
   const elements = page.locator(ref);
   const count = await elements.count();
   console.log(`Found ${count} links with selector: ${ref}`);
 
-  if (links.length === 0 && count > 0) {
-    return await clickAndWaitForNewPage(page, elements.first());
+  if (task > 0 && task <= count) {
+    console.log(`Clicking on link number ${task}`);
+    return await clickAndWaitForNewPage(page, elements.nth(task - 1));
+  } else {
+    console.log(`Invalid task number: ${task}. Total links: ${count}`);
+    return page;
   }
-
-  for (let l of links) {
-    if (l > 0 && l <= count) {
-      await clickAndWaitForNewPage(page, elements.nth(l - 1));
-      console.log(`Clicked on link number ${l}`);
-    } else {
-      console.log(`Invalid link number: ${l}. Total links: ${count}`);
-    }
-  }
-
-  await waitForLoadState(page);
-  return page;
 };
+
 // Main function
 export const clickOnAdLink = async (page, type = "expression", ref = 'iframe') => {
   try {

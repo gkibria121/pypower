@@ -3,7 +3,7 @@ import { clickOnAd, clickOnAdLink, clickOnSite, getAdLink, unlockAd } from "./pa
 import { parseProxyString } from "./proxy.js";
 import { openDB, initDB, logExecution } from "./db.js";
 
-const  automateTask=  async (proxy={},type="") =>{
+export const   automateTask=  async (proxy={},type="",task=1) =>{
   const db = await openDB();
   await initDB(db);
 
@@ -31,7 +31,7 @@ const  automateTask=  async (proxy={},type="") =>{
     const page = await context.newPage();
   
     await unlockAd(page, "https://tinyshorten.com/Tasin-SS", "1111");
-    const adLinkPage = await getAdLink(page, 1);
+    const adLinkPage = await getAdLink(page, task);
     const adPage = await clickOnAdLink(adLinkPage,type=type);
     const adSite = await clickOnAd(adPage,type=type );
     if(type==='click'){
@@ -45,11 +45,8 @@ const  automateTask=  async (proxy={},type="") =>{
   }
   
   console.log('Keeping the browser open for 600 seconds...');
-  await new Promise(resolve => setTimeout(resolve, 600000));
+  // await new Promise(resolve => setTimeout(resolve, 600000));
   await context.browser().close();
   await db.close();
 }
 
-const proxy = parseProxyString("serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-usX73BJm");
-
-automateTask(proxy,'click');
