@@ -1,23 +1,47 @@
 import { timeout } from "puppeteer";
 
-// Constants for timeout times
-const TIMEOUT_SHORT = 2000;
-const TIMEOUT_MEDIUM = 5000;
-const TIMEOUT_LONG = 30000;
-const DEFAULT_LOAD_STATE_TIMEOUT = 60000;  // Default timeout for waitForLoadState
+// Constants
+const TIMEOUT = {
+  SHORT: 2000,
+  MEDIUM: 5000,
+  LONG: 30000,
+  DEFAULT_LOAD_STATE: 60000
+};
 
+// Utility functions
+const waitForLoadState = async (page, state = 'networkidle', timeout = TIMEOUT.DEFAULT_LOAD_STATE) => {
+  await page.waitForLoadState(state, { timeout });
+};
+
+const waitForSelector = async (page, selector, options = { visible: true, timeout: TIMEOUT.LONG }) => {
+  await page.waitForSelector(selector, options);
+};
+
+const clickAndWaitForNewPage = async (page, element) => {
+  const [newPage] = await Promise.all([
+    page.context().waitForEvent('page'),
+    element.click()
+  ]);
+  await waitForLoadState(newPage);
+  return newPage;
+};
+
+// Main functions
 export const unlockAd = async (page, url, password = "1111", inputRef = 'input[name="post_password"]', submitRef = 'input[name="Submit"]') => {
   try {
     console.log(`Navigating to ${url}`);
     await page.goto(url);
-    await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+    await waitForLoadState(page);
+
     console.log(`Filling password: ${password}`);
     await page.fill(inputRef, password);
-    await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+    await waitForLoadState(page);
+
     console.log('Clicking submit button');
     await page.locator(submitRef).click();
-    await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-    await page.waitForTimeout(TIMEOUT_SHORT);
+    await waitForLoadState(page);
+    await page.waitForTimeout(TIMEOUT.SHORT);
+
     console.log('Ad unlocked');
   } catch (error) {
     console.error('Error in unlockAd:', error.message);
@@ -26,193 +50,205 @@ export const unlockAd = async (page, url, password = "1111", inputRef = 'input[n
 
 export const getAdLink = async (page, link = 1, links = [], ref = 'a[rel="noreferrer noopener"]') => {
   console.log('Waiting for page body to load');
-  await page.waitForSelector('body', { state: 'attached' });
-  await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-  await page.waitForTimeout(TIMEOUT_SHORT);
+  await waitForSelector(page, 'body', { state: 'attached' });
+  await waitForLoadState(page);
+  await page.waitForTimeout(TIMEOUT.SHORT);
+
   console.log(`Waiting for selector: ${ref}`);
-  await page.waitForSelector(ref);
-  await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+  await waitForSelector(page, ref);
+  await waitForLoadState(page);
 
   const elements = page.locator(ref);
   const count = await elements.count();
   console.log(`Found ${count} links with selector: ${ref}`);
 
-  if (links.length === 0) {
-    if (count > 0) {
-      const newPage = await clickAndWait(page, elements.first(), 1);
-      console.log('Clicked on the first link');
-      await newPage.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-      return newPage;
-    } else {
-      console.log('No links found');
-    }
-    return page;
+  if (links.length === 0 && count > 0) {
+    return await clickAndWaitForNewPage(page, elements.first());
   }
 
-  for (let i = 0; i < links.length; i++) {
-    let l = links[i];
+  for (let l of links) {
     if (l > 0 && l <= count) {
-      await clickAndWait(page, elements.nth(l - 1), l);
+      await clickAndWaitForNewPage(page, elements.nth(l - 1));
       console.log(`Clicked on link number ${l}`);
     } else {
       console.log(`Invalid link number: ${l}. Total links: ${count}`);
     }
   }
-  await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+
+  await waitForLoadState(page);
   return page;
 };
+// Main function
 export const clickOnAdLink = async (page, type = "expression", ref = 'iframe') => {
   try {
     console.log(`Waiting for iframe with selector: ${ref}`);
-    await page.waitForSelector(ref, { visible: true, timeout: TIMEOUT_LONG });
+    await page.waitForSelector(ref);
 
-    const iframeElement = await page.$(ref);
-    if (!iframeElement) {
-      throw new Error(`Iframe with selector ${ref} not found`);
+    const iframe = await page.$(ref);
+    if (!iframe) {
+      console.log('Iframe not found');
+      return null;
     }
 
-    console.log('Iframe found, loading content');
-    await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-
-    const frameHandle = await iframeElement.contentFrame();
-    if (!frameHandle) {
-      throw new Error(`Failed to get iframe content frame`);
+    const frame = await iframe.contentFrame();
+    if (!frame) {
+      console.log('Unable to get iframe content');
+      return null;
     }
 
-    await frameHandle.waitForLoadState('domcontentloaded', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-    console.log('Iframe content loaded');
-
-    const linkClicked = await frameHandle.evaluate(() => {
-      return new Promise((resolve) => {
-        const interval = setInterval(() => {
-          const link = document.querySelector("a[aria-labelledby]") || document.querySelector("a[aria-label]");
-          if (link && link.href.includes('trk.dtt360.com')) {
-            link.click();
-            clearInterval(interval);
-            resolve({ href: link.href, text: link.textContent.trim() });
-          }
-        }, 1000); // Polling interval of 1 second
-        setTimeout(() => {
-          clearInterval(interval);
-          resolve(null); // Resolve with null if link not found within timeout
-        }, 5000);
-
-
-      });
+    // Log all <a> tags in the iframe
+    const links = await frame.$$eval('a', anchors => {
+      return anchors.map(anchor => ({
+        href: anchor.href,
+        text: anchor.textContent.trim(),
+        target: anchor.getAttribute('target'),
+        rel: anchor.getAttribute('rel'),
+        ariaLabel: anchor.getAttribute('aria-label'),
+        ariaLabelledby: anchor.getAttribute('aria-labelledby'),
+        role: anchor.getAttribute('role')
+      }));
     });
 
-    if (linkClicked) {
-      console.log(`Clicked link: ${linkClicked.text}`);
-      const newPagePromise = new Promise(resolve => page.context().once('page', resolve));
-      const newPage = await newPagePromise;
-      await newPage.waitForLoadState('domcontentloaded', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-      await newPage.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+    // Find the link containing "trk.dtt360.com"
+    const targetLink = links.find((link) => {
+      try {
+        const decodedUrl = decodeURIComponent(link.href);
+        return decodedUrl.includes("trk.dtt360.com");
+      } catch {
+        return false;
+      }
+    });
+
+    if (targetLink) {
+      console.log('Found link containing "trk.dtt360.com". Navigating to:', targetLink.href);
+      const newPage = await page.context().newPage();
+      await newPage.goto(targetLink.href, { waitUntil: 'networkidle', timeout: 60000 });
       console.log('New page loaded:', await newPage.title());
       return newPage;
     } else {
-      await page.reload({timeout : DEFAULT_LOAD_STATE_TIMEOUT});
-      return await clickOnAdLink(page, type  ); // or handle accordingly
+      console.log('No link containing "trk.dtt360.com" found');
+
+      // Find all links with class 'post-page-numbers'
+      const postPageNumbers = await page.$$('.post-page-numbers');
+      
+      // Filter out the link with text '2'
+      const filteredLinks = await Promise.all(postPageNumbers.map(async link => {
+        const textContent = await link.innerText();
+        if (textContent.trim() !== '2') {
+          return link;
+        }
+      }));
+      
+      // Filter out undefined elements
+      const validLinks = filteredLinks.filter(link => link !== undefined);
+      
+      if (validLinks.length === 0) {
+        console.log('No valid links found.');
+        return null;
+      }
+      
+      // Randomly choose a link to click
+      const randomIndex = Math.floor(Math.random() * validLinks.length);
+      const linkToClick = validLinks[randomIndex];
+      
+      // Get the href attribute of the link
+      const href = await linkToClick.getAttribute('href');
+      console.log(`Clicking link: ${href}`);
+      
+      // Click the link
+      await linkToClick.click();
+      
+      await waitForLoadState(page)
+      // Recursively call clickOnAdLink to continue the process
+      return clickOnAdLink(page, type, ref);
+ 
     }
+
   } catch (error) {
     console.error('Error during navigation:', error);
-    throw error; // rethrow the error for higher-level handling
+    throw error;
   }
 };
 
-const clickAndWait = async (page, element, index) => {
-  console.log(`Clicking on element at index: ${index}`);
-  const newPagePromise = new Promise(resolve => {
-    page.context().once('page', resolve);
-  });
-
-  await element.click();
-  await page.waitForTimeout(TIMEOUT_SHORT);
-  const newPage = await newPagePromise;
-  await newPage.waitForLoadState('domcontentloaded', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-  await newPage.waitForTimeout(TIMEOUT_SHORT);
-  await newPage.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-  console.log('Navigation completed or new tab opened');
-  return newPage;
-};
+ 
 
 export const clickOnAd = async (page, type = "expression", ref = '.adv-text-top') => {
   try {
     console.log("Waiting for", ref);
-    await page.waitForSelector(ref, { visible: true, timeout: TIMEOUT_LONG });
-    await page.waitForTimeout(TIMEOUT_LONG);
-    await page.screenshot({ path: "adPage.png" });
+    await waitForSelector(page, ref);
+    await page.waitForTimeout(TIMEOUT.LONG); 
     console.log("Expression done");
 
-    const button = await page.waitForSelector('.adv-text-exp__title', { visible: true, timeout: TIMEOUT_LONG });
-    if (type === "click") {
-      if (button) {
-        console.log('Button with class adv-text-exp__title clicked');
-        return clickAndWait(page,button,1)
-      } else {
-        console.log('Button with class adv-text-exp__title not found');
-      }
+    const button = await page.$('.adv-text-exp__title');
+    if (type === "click" && button) {
+      console.log('Button with class adv-text-exp__title clicked');
+      return await clickAndWaitForNewPage(page, button);
+    } else {
+      console.log('Button with class adv-text-exp__title not found or not clicked');
     }
 
     return page;
   } catch (error) {
     console.error('Error during ad click:', error);
-    throw error; // Rethrow the error for higher-level handling
+    throw error;
   }
 };
 
 export const clickOnSite = async (page) => {
-  const endTime = Date.now() + DEFAULT_LOAD_STATE_TIMEOUT;
+  const endTime = Date.now() + TIMEOUT.DEFAULT_LOAD_STATE;
   while (Date.now() < endTime) {
     try {
       await randomScroll(page);
-      clickRandomButtons(page);
+      await clickRandomLinks(page);
       await randomScroll(page);
     } catch (error) {
       console.error('Error in clickOnSite iteration:', error.message);
     }
-    await page.waitForTimeout(TIMEOUT_SHORT);
+    await page.waitForTimeout(TIMEOUT.SHORT);
   }
-  await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+  await waitForLoadState(page);
 };
 
-async function clickRandomButtons(page, maxClicks = 1, delay = TIMEOUT_SHORT) {
+async function clickRandomLinks(page, maxClicks = 1, delay = TIMEOUT.SHORT) {
+  const originalUrl = page.url();
+
   for (let i = 0; i < maxClicks; i++) {
     try {
-      const buttons = await page.$$('button');
-      if (buttons.length === 0) {
-        console.log('No buttons found on the page.');
+      const links = await page.$$('a[href]');
+      if (links.length === 0) {
+        console.log('No links found on the page.');
         break;
       }
 
-      const randomIndex = Math.floor(Math.random() * buttons.length);
-      const randomButton = buttons[randomIndex];
-      const buttonText = await randomButton.evaluate(el => el.innerText.trim());
-      console.log(`Clicking button: ${buttonText}`);
+      const randomLink = links[Math.floor(Math.random() * links.length)];
+      const linkText = await randomLink.evaluate(el => el.innerText.trim() || el.getAttribute('href'));
+      console.log(`Clicking link: ${linkText}`);
 
-      await randomButton.click();
-      console.log('Button clicked.');
+      const newPage = await clickAndWaitForNewPage(page, randomLink);
+      console.log(`Navigated to: ${newPage.url()}`);
 
-      await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
-      await page.waitForTimeout(delay);
-      
+      await newPage.waitForTimeout(delay);
+      await newPage.close();
+      await page.bringToFront();
     } catch (error) {
-      console.error('Error during button click:', error.message);
+      console.error('Error during link navigation:', error.message);
     }
+  }
+
+  if (page.url() !== originalUrl) {
+    await page.goto(originalUrl);
   }
 }
 
-
-
-async function randomScroll(page, maxScrolls = 5, maxScrollAmount = 800, minScrollAmount = 100, maxDelay = TIMEOUT_SHORT, minDelay = 500) {
+async function randomScroll(page, maxScrolls = 5, maxScrollAmount = 800, minScrollAmount = 100, maxDelay = TIMEOUT.SHORT, minDelay = 500) {
   for (let i = 0; i < maxScrolls; i++) {
     try {
       const scrollAmount = Math.floor(Math.random() * (maxScrollAmount - minScrollAmount + 1)) + minScrollAmount;
       const scrollDirection = Math.random() < 0.5 ? -1 : 1;
 
       await page.evaluate(amount => window.scrollBy(0, amount), scrollAmount * scrollDirection);
-      await page.waitForLoadState('networkidle', { timeout: DEFAULT_LOAD_STATE_TIMEOUT });
+      await waitForLoadState(page);
       console.log(`Scrolled ${scrollDirection > 0 ? 'down' : 'up'} by ${scrollAmount} pixels`);
-
 
       const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
       await page.waitForTimeout(delay);
@@ -220,4 +256,32 @@ async function randomScroll(page, maxScrolls = 5, maxScrollAmount = 800, minScro
       console.error('Error during scrolling:', error.message);
     }
   }
+}
+
+async function waitForFBPageAndEvaluate(page) {
+  await page.waitForLoadState();
+
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(2000);
+
+  const result = await page.evaluate(() => {
+    return new Promise((resolve) => {
+      const interval = setInterval(() => {
+        const link = document.querySelector("a[aria-labelledby]") ||
+          document.querySelector("a[aria-label]") ||
+          document.querySelector("a[*='1081.us.searchitbetter.com']");
+        if (link && (link.href.includes('trk.dtt360.com') || link.ariaLabel.includes('1081.us.searchitbetter.com'))) {
+          link.click();
+          clearInterval(interval);
+          resolve({ href: link.href, text: link.textContent.trim() });
+        }
+      }, 1000);
+      setTimeout(() => {
+        clearInterval(interval);
+        resolve(null);
+      }, 5000);
+    });
+  });
+
+  return result;
 }
