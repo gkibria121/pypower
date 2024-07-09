@@ -18,15 +18,22 @@ const  automateTask=  async (proxy={},type="") =>{
   page2.close();
 
   try {
-    await page0.goto("https://browserscan.net");
+    try{
+
+      await page0.goto("https://browserscan.net");
+    }
+    catch(error){
+
+    }
+ 
     console.log("Navigation to browserscan.net completed");
 
     const page = await context.newPage();
   
     await unlockAd(page, "https://tinyshorten.com/Tasin-SS", "1111");
     const adLinkPage = await getAdLink(page, 1);
-    const adPage = await clickOnAdLink(adLinkPage);
-    const adSite = await clickOnAd(adPage);
+    const adPage = await clickOnAdLink(adLinkPage,type=type);
+    const adSite = await clickOnAd(adPage,type=type );
     if(type==='click'){
         await clickOnSite(adSite);
     }
@@ -36,11 +43,13 @@ const  automateTask=  async (proxy={},type="") =>{
     console.error("Error during navigation:", error);
     await logExecution(db,type, 'error', error.message,JSON.stringify(proxy));
   }
-
+  
+  console.log('Keeping the browser open for 600 seconds...');
+  await new Promise(resolve => setTimeout(resolve, 600000));
   await context.browser().close();
   await db.close();
 }
 
-const proxy = parseProxyString("serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-Lbvc25Vh");
+const proxy = parseProxyString("serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-usX73BJm");
 
-automateTask(proxy,'expression');
+automateTask(proxy,'click');
