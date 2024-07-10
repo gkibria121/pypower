@@ -1,11 +1,10 @@
-import { timeout } from "puppeteer";
-
+ 
 // Constants
 const TIMEOUT = {
   SHORT: 2000,
   MEDIUM: 5000,
   LONG: 30000,
-  DEFAULT_LOAD_STATE: 80000
+  DEFAULT_LOAD_STATE: 100000
 };
 
 // Utility functions
@@ -13,9 +12,7 @@ const waitForLoadState = async (page, state = 'networkidle', timeout = TIMEOUT.D
   await page.waitForLoadState(state, { timeout });
 };
 
-const waitForSelector = async (page, selector, options = { visible: true, timeout: TIMEOUT.LONG }) => {
-  await page.waitForSelector(selector, options);
-};
+ 
 
 const clickAndWaitForNewPage = async (page, element) => {
   const [newPage] = await Promise.all([
@@ -115,7 +112,7 @@ export const clickOnAdLink = async (page, type = "expression", ref = 'iframe') =
     if (targetLink) {
       console.log('Found link containing "trk.dtt360.com". Navigating to:', targetLink.href);
       const newPage = await page.context().newPage();
-      await newPage.goto(targetLink.href, { waitUntil: 'networkidle', timeout: 60000 });
+      await newPage.goto(targetLink.href, { waitUntil: 'networkidle', timeout: TIMEOUT.DEFAULT_LOAD_STATE+10000 });
       console.log('New page loaded:', await newPage.title());
       return newPage;
     } else {
@@ -164,26 +161,49 @@ export const clickOnAdLink = async (page, type = "expression", ref = 'iframe') =
 };
 
  
+export const clickOnAd = async (page, type = "expression") => {
+  
+    console.log("Waiting for page load");
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(TIMEOUT.LONG);
+    console.log("Page loaded");
 
-export const clickOnAd = async (page, type = "expression", ref = '.adv-text-top') => {
- 
-    console.log("Waiting for", ref);
-    await waitForSelector(page, ref);
-    await page.waitForTimeout(TIMEOUT.LONG); 
-    console.log("Expression done");
+    if (type === "click") {
+      // Find all 'a' tags containing 'www'
+      const wwwLinks = page.locator('a:has-text("www")');
+      const count = await wwwLinks.count();
 
-    const button = await page.$('.adv-text-exp__title');
-    if (type === "click" && button) {
-      console.log('Button with class adv-text-exp__title clicked');
-      return await clickAndWaitForNewPage(page, button);
+      if (count > 0) {
+        console.log(`Found ${count} link(s) containing "www"`);
+        
+        // Get the first link
+        const firstLink = wwwLinks.first();
+        
+        // Get the href attribute
+        const href = await firstLink.getAttribute('href');
+        
+        if (href) {
+          console.log(`Clicking link with href: ${href}`);
+          
+          // Open a new page with this URL
+          const newPage = await page.context().newPage();
+          await newPage.goto(href, { waitUntil: 'domcontentloaded' });
+          
+          console.log('Opened in new page');
+          return newPage;
+        } else {
+          console.log('Link found but has no href attribute');
+        }
+      } else {
+        console.log('No link with "www" found.');
+      }
     } else {
-      console.log('Button with class adv-text-exp__title not found or not clicked');
+      console.log('Type is not "click". No action taken.');
     }
 
     return page;
  
 };
-
 export const clickOnSite = async (page) => {
   const endTime = Date.now() + TIMEOUT.DEFAULT_LOAD_STATE;
   while (Date.now() < endTime) {
@@ -248,30 +268,4 @@ async function randomScroll(page, maxScrolls = 5, maxScrollAmount = 800, minScro
   }
 }
 
-async function waitForFBPageAndEvaluate(page) {
-  await page.waitForLoadState();
-
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(2000);
-
-  const result = await page.evaluate(() => {
-    return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        const link = document.querySelector("a[aria-labelledby]") ||
-          document.querySelector("a[aria-label]") ||
-          document.querySelector("a[*='1081.us.searchitbetter.com']");
-        if (link && (link.href.includes('trk.dtt360.com') || link.ariaLabel.includes('1081.us.searchitbetter.com'))) {
-          link.click();
-          clearInterval(interval);
-          resolve({ href: link.href, text: link.textContent.trim() });
-        }
-      }, 1000);
-      setTimeout(() => {
-        clearInterval(interval);
-        resolve(null);
-      }, 5000);
-    });
-  });
-
-  return result;
-}
+ 

@@ -36,7 +36,7 @@ const automateWithProxy = async (proxyString, taskType) => {
   const proxy = parseProxyString(proxyString);
   try {
     console.log(`Starting ${taskType} task with proxy: ${proxyString}`);
-    await automateTask(proxy, taskType);
+    await automateTask(proxy, taskType,1, "https://tinyshorten.com/Tasin-SS");
     console.log(`${taskType} task completed with proxy: ${proxyString}`);
   } catch (error) {
     console.error(`Error with proxy ${proxyString}:`, error);
@@ -55,7 +55,7 @@ const main = async () => {
       break;
     }
 
-    await automateWithProxy(expressionProxy, 'expression');
+    await automateWithProxy(expressionProxy, 'click');
 
     setTimeout(async () => {
       await automateWithProxy(clickProxy, 'click');
