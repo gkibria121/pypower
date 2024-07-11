@@ -1,3 +1,4 @@
+//main.js
 import { getBrowser } from "./browser.js";
 import { clickOnAd, clickOnAdLink, clickOnSite, getAdLink, unlockAd } from "./page.js";
 import { parseProxyString } from "./proxy.js";

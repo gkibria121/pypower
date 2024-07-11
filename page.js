@@ -1,4 +1,4 @@
-import { timeout } from "puppeteer";
+//page.js
 
 // Constants
 const TIMEOUT = {

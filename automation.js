@@ -1,3 +1,5 @@
+//automation.js
+
 import fs from 'fs';
 import { automateTask } from './main.js';
 import { parseProxyString } from './proxy.js';

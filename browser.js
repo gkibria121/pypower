@@ -1,3 +1,4 @@
+//browser.js
 import { chromium } from "playwright-extra";
 import axios from "axios";
 import { newInjectedContext } from "fingerprint-injector";
