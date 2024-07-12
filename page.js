@@ -120,10 +120,7 @@ class AdNavigator {
 
         const postPageNumbers = await page.$$(".post-page-numbers");
         const validLinks = (await Promise.all(
-          postPageNumbers.map(async (link) => {
-            const textContent = await link.innerText();
-            return textContent.trim() !== "2" ? link : undefined;
-          })
+          postPageNumbers 
         )).filter((link) => link !== undefined);
 
         if (validLinks.length === 0) {
