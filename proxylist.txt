@@ -1,4 +1,2 @@
-serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-Lbvc25Vh
-serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-UHRgS6T4
 serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-P2V7Fv9g
 serv.dtt360.com:8000:Skhan:qGsg86afVQOnK-country-US-session-4pJtcaQz

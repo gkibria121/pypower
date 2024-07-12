@@ -1,80 +1,82 @@
-//automation.js
+// automation.js
 
 import fs from 'fs';
 import { automateTask } from './main.js';
 import { parseProxyString } from './proxy.js';
 
-const PROXY_FILE = 'proxylist.txt';
-const TIMEOUT_BETWEEN_TASKS = 3000;
-
-const readProxyList = () => {
-  try {
-    const data = fs.readFileSync(PROXY_FILE, 'utf-8');
-    const proxies = data.split('\n').filter(proxy => proxy.trim() !== '').map((proxy)=> proxy.replace('\r','')  );
-    console.log(`Read ${proxies.length} proxies from file.`);
-    return proxies;
-  } catch (error) {
-    console.error(`Error reading proxy list: ${error}`);
-    return [];
+class ProxyAutomator {
+  constructor(proxyFile = 'proxylist.txt', timeoutBetweenTasks = 3000) {
+    this.PROXY_FILE = proxyFile;
+    this.TIMEOUT_BETWEEN_TASKS = timeoutBetweenTasks;
+    this.proxyList = [];
   }
-};
 
-const writeProxyList = (proxies) => {
-  try {
-    fs.writeFileSync(PROXY_FILE, proxies.join('\n'), 'utf-8');
-    console.log(`Updated proxy list written to file.`);
-  } catch (error) {
-    console.error(`Error writing proxy list: ${error}`);
+  readProxyList() {
+    try {
+      const data = fs.readFileSync(this.PROXY_FILE, 'utf-8');
+      this.proxyList = data.split('\n').filter(proxy => proxy.trim() !== '').map((proxy) => proxy.replace('\r', ''));
+      console.log(`Read ${this.proxyList.length} proxies from file.`);
+    } catch (error) {
+      console.error(`Error reading proxy list: ${error}`);
+      this.proxyList = [];
+    }
   }
-};
 
-const removeProxyFromList = (proxyList, proxy) => {
-  const updatedList = proxyList.filter(p => p !== proxy);
-  console.log(`Removed proxy: ${proxy}. ${updatedList.length} proxies remaining.`);
-  return updatedList;
-};
-
-const automateWithProxy = async (proxyString, taskType) => {
-  const proxy = parseProxyString(proxyString);
-  try {
-    console.log(`Starting ${taskType} task with proxy: ${proxyString}`);
-    await automateTask(proxy, taskType,1, "https://tinyshorten.com/Tasin-SS");
-    console.log(`${taskType} task completed with proxy: ${proxyString}`);
-  } catch (error) {
-    console.error(`Error with proxy ${proxyString}:`, error);
+  writeProxyList() {
+    try {
+      fs.writeFileSync(this.PROXY_FILE, this.proxyList.join('\n'), 'utf-8');
+      console.log(`Updated proxy list written to file.`);
+    } catch (error) {
+      console.error(`Error writing proxy list: ${error}`);
+    }
   }
-};
 
-const main = async () => {
-  let proxyList = readProxyList();
+  removeProxyFromList(proxy) {
+    this.proxyList = this.proxyList.filter(p => p !== proxy);
+    console.log(`Removed proxy: ${proxy}. ${this.proxyList.length} proxies remaining.`);
+  }
 
-  while (proxyList.length >= 2) { // Ensure there are at least two proxies for both tasks
-    const expressionProxy = proxyList.shift(); // Remove the first proxy for 'expression' task
-    const clickProxy = proxyList.shift(); // Remove the second proxy for 'click' task
+  async automateWithProxy(proxyString, taskType) {
+    const proxy = parseProxyString(proxyString);
+    try {
+      console.log(`Starting ${taskType} task with proxy: ${proxyString}`);
+      await automateTask(proxy, taskType, 1, "https://tinyshorten.com/Tasin-SS");
+      console.log(`${taskType} task completed with proxy: ${proxyString}`);
+    } catch (error) {
+      console.error(`Error with proxy ${proxyString}:`, error);
+    }
+  }
 
-    if (!expressionProxy || !clickProxy) {
-      console.error('Proxies are null or undefined.');
-      break;
+  async run() {
+    this.readProxyList();
+
+    while (this.proxyList.length >= 2) {
+      const expressionProxy = this.proxyList.shift();
+      const clickProxy = this.proxyList.shift();
+
+      if (!expressionProxy || !clickProxy) {
+        console.error('Proxies are null or undefined.');
+        break;
+      }
+
+      await this.automateWithProxy(expressionProxy, 'click');
+
+      await new Promise(resolve => setTimeout(resolve, this.TIMEOUT_BETWEEN_TASKS));
+
+      await this.automateWithProxy(clickProxy, 'click');
+
+      this.removeProxyFromList(expressionProxy);
+      this.removeProxyFromList(clickProxy);
+      this.writeProxyList();
     }
 
-    await automateWithProxy(expressionProxy, 'click');
-
-    setTimeout(async () => {
-      await automateWithProxy(clickProxy, 'click');
-
-      // Remove the used proxies from the list and save the updated list
-      proxyList = removeProxyFromList(proxyList, expressionProxy);
-      proxyList = removeProxyFromList(proxyList, clickProxy);
-      writeProxyList(proxyList);
-
-      // Continue to the next pair of tasks
-      main();
-    }, TIMEOUT_BETWEEN_TASKS);
-    
-    break; // Exit loop to avoid overlapping setTimeout calls
+    console.log('All tasks completed or insufficient proxies.');
   }
+}
 
-  console.log('All tasks completed or insufficient proxies.');
+const main = async () => {
+  const automator = new ProxyAutomator();
+  await automator.run();
 };
 
 main();
