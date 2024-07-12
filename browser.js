@@ -56,10 +56,8 @@ class BrowserManager {
           console.log(`Updated timezone to: ${this.timezoneId}`);
 
           // Reload all pages after updating the timezone
-          const pages = this.context.pages();
-          for (const page of pages) {
-            await page.reload();
-          }
+           
+          this.context.setTimezone(this.timezoneId);
         }
       } catch (error) {
         console.error("Error updating timezone:", error);
